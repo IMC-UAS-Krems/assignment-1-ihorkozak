@@ -61,6 +61,9 @@ def platform() -> StreamingPlatform:
     # ------------------------------------------------------------------
     alice = FreeUser("u1", "Alice",   age=30)
     bob   = PremiumUser("u2", "Bob",   age=25, subscription_start=date(2023, 1, 1))
+    owner = FamilyAccountUser("f1", "Parent", age=40)
+    child1 = FamilyMember("c1", "Child1", age=15,parent=owner)
+    child2 = FamilyMember("c2", "Child2", age=19,parent=owner)
 
     for user in (alice, bob):
         platform.add_user(user)

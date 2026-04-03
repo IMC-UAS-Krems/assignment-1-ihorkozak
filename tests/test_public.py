@@ -22,8 +22,11 @@ from datetime import datetime, timedelta
 
 from streaming.platform import StreamingPlatform
 from streaming.users import FreeUser, PremiumUser, FamilyAccountUser, FamilyMember
-from streaming.playlists import CollaborativePlaylist
-from tests.conftest import FIXED_NOW, RECENT, OLD
+from streaming.playlists import Playlist,CollaborativePlaylist
+from streaming.sessions import ListeningSession
+from streaming.artists import Artist
+from streaming.tracks import SingleRelease
+from conftest import FIXED_NOW, RECENT, OLD
 
 
 # ===========================================================================
@@ -55,9 +58,26 @@ class TestTotalListeningTime:
     # TODO: Add a test that verifies the correct value for a known time period.
     #       Calculate the expected total based on the fixture data in conftest.py.
     def test_known_period_value(self, platform: StreamingPlatform) -> None:
-        pass
+        
+        user = platform.get_user("u1")
+        track = platform.get_track("t1")
+        
+        assert user is not None
+        assert track is not None
+        
+        s1 = ListeningSession("s1",user,track,FIXED_NOW,120)
+        #  s2 = ListeningSession("s2",user,track,OLD,180) will not be counted due to false timestamp
+        
+        
+        platform.record_session(s1)
+        # platform.record_session(s2)
+        
+        start = FIXED_NOW - timedelta(days=1)
+        end = FIXED_NOW + timedelta(days=1)
 
+        result = platform.total_listening_time_minutes(start, end)
 
+        assert result == 2.0
 # ===========================================================================
 # Q2 - Average unique tracks per PremiumUser in the last N days
 # ===========================================================================
@@ -86,8 +106,32 @@ class TestAvgUniqueTracksPremium:
     #       average for premium users. You'll need to count unique tracks
     #       per premium user and calculate the average.
     def test_correct_value(self, platform: StreamingPlatform) -> None:
-        pass
-
+        
+        user = platform.get_user("u2") 
+        t1 = platform.get_track("t1")
+        t2 = platform.get_track("t2")
+        t3 = platform.get_track("t3")
+        
+        assert user is not None
+        assert t1 is not None
+        assert t2 is not None
+        assert t3 is not None
+        
+        s1 = ListeningSession("s1",user,t1,RECENT,120)
+        s2 = ListeningSession("s2",user,t2,RECENT,120)
+        s3 = ListeningSession("s3",user,t1,RECENT,120)
+        s4 = ListeningSession("s4",user,t3,OLD,120)
+        
+        platform.record_session(s1)
+        platform.record_session(s2)
+        platform.record_session(s3)
+        platform.record_session(s4)
+         
+        
+        
+        result = platform.avg_unique_tracks_per_premium_user()
+        
+        assert result == 2.0
 
 # ===========================================================================
 # Q3 - Track with the most distinct listeners
@@ -110,7 +154,28 @@ class TestTrackMostDistinctListeners:
     # TODO: Add a test that verifies the correct track is returned.
     #       Count listeners per track from the fixture data.
     def test_correct_track(self, platform: StreamingPlatform) -> None:
-        pass
+        
+        track = platform.get_track("t1")
+        user = platform.get_user("u1")
+        track1 = platform.get_track("t2")
+        user1 = platform.get_user("u2")
+        
+        assert track is not None
+        assert track1 is not None
+        assert user is not None
+        assert user1 is not None
+        
+        s1 = ListeningSession("s1", user, track, RECENT ,120)
+        s2 = ListeningSession("s2", user1, track, RECENT ,120)
+        s3 = ListeningSession("s3", user, track1, RECENT ,120)
+        
+        platform.record_session(s1)
+        platform.record_session(s2)
+        platform.record_session(s3)
+        
+        result = platform.track_with_most_distinct_listeners()
+        assert result is not None
+        assert result.track_id == "t1"
 
 
 # ===========================================================================
@@ -142,7 +207,28 @@ class TestAvgSessionDurationByType:
 
     # TODO: Add tests to verify all user types are present and have correct averages.
     def test_all_user_types_present(self, platform: StreamingPlatform) -> None:
-        pass
+        
+        u1 = platform.get_user("u1")
+        u2 = platform.get_user("u2")
+        t1 = platform.get_track("t1")
+        t2 = platform.get_track("t2")
+        
+        
+        assert u1 is not None
+        assert t1 is not None
+        assert u2 is not None
+        assert t2 is not None
+        
+        
+        s1 = ListeningSession("t1",u1,t1,RECENT ,120)
+        s2 = ListeningSession("t2",u2,t2,RECENT ,150)
+        
+        platform.record_session(s1)
+        platform.record_session(s2)
+        
+        result = platform.avg_session_duration_by_user_type()
+    
+        assert result == [ ("PremiumUser", 150) , ("FreeUser",120)]
 
 
 # ===========================================================================
@@ -171,10 +257,49 @@ class TestUnderageSubUserListening:
 
     # TODO: Add tests for correct values with default and custom thresholds.
     def test_correct_value_default_threshold(self, platform: StreamingPlatform) -> None:
-        pass
+        owner = FamilyAccountUser("f1", "Parent", age=40)
+        child1 = FamilyMember("c1", "Child1", age=15,parent=owner)
+        child2 = FamilyMember("c2", "Child2", age=19,parent=owner)
+        
+        owner.add_sub_user(child1)
+        owner.add_sub_user(child2)
+        
+        platform.add_user(owner)
+        platform.add_user(child1)
+        platform.add_user(child2)
+        
+        track = platform.get_track("t1")
+        assert track is not None
+        
+        s1 = ListeningSession("s1",child1,track,RECENT,120)
+        s2 = ListeningSession("s2",child2,track,RECENT,180)
+        
+        platform.record_session(s1)
+        platform.record_session(s2)
+        assert platform.total_listening_time_underage_sub_users_minutes() == 2.0
 
     def test_custom_threshold(self, platform: StreamingPlatform) -> None:
-        pass
+        owner = FamilyAccountUser("f1", "Parent", age=40)
+        child1 = FamilyMember("c1", "Child1", age=15,parent=owner)
+        child2 = FamilyMember("c2", "Child2", age=19,parent=owner)
+        
+        owner.add_sub_user(child1)
+        owner.add_sub_user(child2)
+        
+        platform.add_user(owner)
+        platform.add_user(child1)
+        platform.add_user(child2)
+        
+        track = platform.get_track("t1")
+        assert track is not None
+        
+        s1 = ListeningSession("s1",child1,track,RECENT,120)
+        s2 = ListeningSession("s2",child2,track,RECENT,180)
+        
+        platform.record_session(s1)
+        platform.record_session(s2)
+        assert platform.total_listening_time_underage_sub_users_minutes(age_threshold=21) == 5.0
+
 
 
 # ===========================================================================
@@ -213,7 +338,29 @@ class TestTopArtistsByListeningTime:
 
     # TODO: Add a test that verifies the correct artists and values.
     def test_top_artist(self, platform: StreamingPlatform) -> None:
-        pass
+        
+        u1 = platform.get_user("u1")
+        u2 = platform.get_user("u2")
+        
+        t1 = platform.get_track("t1")
+        t2 = platform.get_track("t2")
+        
+        assert u1 is not None
+        assert u2 is not None
+        assert t1 is not None
+        assert t2 is not None
+        s1 = ListeningSession("s1",u1,t1,RECENT,120)        
+        s2 = ListeningSession("s2",u2,t2,RECENT,180)     
+        
+        platform.record_session(s1)   
+        platform.record_session(s2)   
+        
+        result = platform.top_artists_by_listening_time()
+        
+        artist = platform.get_artist("a1")
+        assert artist is not None
+        assert result[0][0] == artist
+        assert result[0][1] ==  5.0
 
 
 # ===========================================================================
@@ -250,7 +397,32 @@ class TestUserTopGenre:
 
     # TODO: Add a test that verifies the correct genre and percentage for a known user.
     def test_correct_top_genre(self, platform: StreamingPlatform) -> None:
-        pass
+        
+        u1 = platform.get_user("u1")
+        pop_track = platform.get_track("t1")
+        
+        assert u1 is not None
+        assert pop_track is not None
+        rock_artist = Artist("a2","Rocks", genre="rock")
+        rock_track = SingleRelease("t4","Stone Wave",200,"rock",rock_artist,release_date = datetime(2024,1,1))
+        platform.add_artist(rock_artist)
+        platform.add_track(rock_track)
+        rock_artist.add_track(rock_track)
+        s1 = ListeningSession("s1",u1,pop_track,RECENT,120)
+        s2 = ListeningSession("s2",u1,pop_track,RECENT,180)
+        s3 = ListeningSession("s3",u1,rock_track,RECENT,100)
+        
+        platform.record_session(s1)
+        platform.record_session(s2)
+        platform.record_session(s3)
+        
+        result = platform.user_top_genre("u1")
+        
+        assert result is not None
+        assert result[0] == "pop"
+        assert result[1] == 75.0
+        
+        
 
 
 # ===========================================================================
@@ -285,7 +457,39 @@ class TestCollaborativePlaylistsManyArtists:
     # TODO: Add tests that verify the correct playlists are returned with
     #       different threshold values.
     def test_default_threshold(self, platform: StreamingPlatform) -> None:
-        pass
+        
+        
+        
+        owner = platform.get_user("u1")
+        
+        assert owner is not None
+        
+        playlist = CollaborativePlaylist("p1","Collab",owner)
+        platform.add_playlist(playlist)
+        
+        a1 = Artist("a10","A1",genre="pop")
+        a2= Artist("a11","A2",genre="rock")
+        a3 = Artist("a12","A3",genre="jazz")
+        
+        platform.add_artist(a1)
+        platform.add_artist(a2)
+        platform.add_artist(a3)
+        
+        t1 = SingleRelease("t10","S1",100,"pop",a1,release_date=datetime(2024,1,1))
+        t2 = SingleRelease("t11","S2",100,"rock",a2,release_date=datetime(2024,1,1))
+        t3 = SingleRelease("t12","S3",100,"jazz",a3,release_date=datetime(2024,1,1))
+        
+        a1.add_track(t1)
+        a2.add_track(t2)
+        a3.add_track(t3)
+        
+        playlist.add_track(t1)
+        playlist.add_track(t2)
+        playlist.add_track(t3)
+        
+        result = platform.collaborative_playlists_with_many_artists(threshold=2)
+        
+        assert playlist in result
 
 
 # ===========================================================================
@@ -313,12 +517,59 @@ class TestAvgTracksPerPlaylistType:
 
     # TODO: Add tests that verify the correct averages for each playlist type.
     def test_standard_playlist_average(self, platform: StreamingPlatform) -> None:
-        pass
+        owner = platform.get_user("u1")
+        t1 = platform.get_track("t1")
+        t2 = platform.get_track("t2")
+        t3 = platform.get_track("t3")
+        
+        assert owner is not None
+        assert t1 is not None
+        assert t2 is not None
+        assert t3 is not None
+        
+        p1 = Playlist("p1","Mix1",owner)
+        p2 = Playlist("p2","Mix2",owner)
+        
+        p1.add_track(t1)
+        p1.add_track(t2)
+        
+        p2.add_track(t3)
+        
+        platform.add_playlist(p1)
+        platform.add_playlist(p2)
+        
+        result = platform.avg_tracks_per_playlist_type()
+    
+        assert result["Playlist"] == 1.5
+        
+        
 
-    def test_collaborative_playlist_average(
-        self, platform: StreamingPlatform
-    ) -> None:
-        pass
+    def test_collaborative_playlist_average(self, platform: StreamingPlatform) -> None:
+        owner = platform.get_user("u1")
+        t1 = platform.get_track("t1")
+        t2 = platform.get_track("t2")
+        t3 = platform.get_track("t3")
+        
+        assert owner is not None
+        assert t1 is not None
+        assert t2 is not None
+        assert t3 is not None
+        
+        cp1 = CollaborativePlaylist("cp1","Collab1",owner)
+        cp2 = CollaborativePlaylist("cp2","Collab2",owner)
+        
+        cp1.add_track(t1)
+        cp1.add_track(t2)
+        cp1.add_track(t3)
+        
+        cp2.add_track(t1)
+        
+        platform.add_playlist(cp1)
+        platform.add_playlist(cp2)
+        
+        result = platform.avg_tracks_per_playlist_type()
+        
+        assert result["CollaborativePlaylist"] == 2.0
 
 
 # ===========================================================================
@@ -354,7 +605,57 @@ class TestUsersWhoCompletedAlbums:
 
     # TODO: Add tests that verify the correct users and albums are identified.
     def test_correct_users_identified(self, platform: StreamingPlatform) -> None:
-        pass
+        
+        u1 = platform.get_user("u1")
+        
+        t1 = platform.get_track("t1")
+        t2 = platform.get_track("t2")
+        t3 = platform.get_track("t3")
+        
+        assert u1 is not None
+        assert t1 is not None
+        assert t2 is not None
+        assert t3 is not None
+        
+        
+        s1 = ListeningSession("s1", u1, t1,RECENT,120)
+        s2 = ListeningSession("s2", u1, t2, RECENT,120)
+        s3 = ListeningSession("s3", u1, t3, RECENT,120)
+        
+        platform.record_session(s1)
+        platform.record_session(s2)
+        platform.record_session(s3)
+        
+        result = platform.users_who_completed_albums()
+        
+        users_result = [u for u,_ in result]
+        assert u1 in users_result
 
     def test_correct_album_titles(self, platform: StreamingPlatform) -> None:
-        pass
+       u1 = platform.get_user("u1")
+        
+       t1 = platform.get_track("t1")
+       t2 = platform.get_track("t2")
+       t3 = platform.get_track("t3")
+       
+       assert u1 is not None
+       assert t1 is not None
+       assert t2 is not None
+       assert t3 is not None
+       
+       
+       s1 = ListeningSession("s1", u1, t1,RECENT,120)
+       s2 = ListeningSession("s2", u1, t2, RECENT,120)
+       s3 = ListeningSession("s3", u1, t3, RECENT,120)
+       
+       platform.record_session(s1)
+       platform.record_session(s2)
+       platform.record_session(s3)
+       
+       result = platform.users_who_completed_albums()
+       titles = []
+       for u,title in result:
+           if u == u1:
+               titles = title
+               
+       assert "Digital Dreams" in titles
