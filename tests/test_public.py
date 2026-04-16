@@ -577,7 +577,7 @@ class TestAvgTracksPerPlaylistType:
 # ===========================================================================
 
 class TestUsersWhoCompletedAlbums:
-    """Test the users_who_completed_albums() method.
+    """Test the users_who_completed_albums() method
     
     This method should:
     - Return users who have listened to every track on at least one album

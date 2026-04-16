@@ -16,6 +16,15 @@ from streaming.playlists import Playlist, CollaborativePlaylist
 from streaming.sessions import ListeningSession
 
 class StreamingPlatform:
+  
+    """Central class managing all entities in the streaming platform 
+
+    Responsible for:
+        - storing users, tracks, artists, albums, playlists
+        - recording listening sessions
+        - providing analytics queries (Q1 - Q10)
+    """
+    
     def __init__(self,name:str):
       
       self.name = name
@@ -27,40 +36,52 @@ class StreamingPlatform:
       self._sessions: list[ListeningSession] = []
       
     def add_track(self,track:Track) -> None:
+      """Add a track to the platform catalogue """
       self._catalogue[track.track_id] = track
     
     def add_user(self,user:User) -> None:
+      """Add a user to the platform catalogue """
       self._users[user.user_id] = user
     
     def add_artist(self,artist:Artist) -> None:
+      """Add a artist to the platform catalogue """
       self._artists[artist.artist_id] = artist
     
     def add_album(self,album:Album) ->None:
+      """Add a album to the platform catalogue """
       self._albums[album.album_id] = album
     
     def add_playlist(self,playlist:Playlist) -> None:
+      """Add a playlist to the platform catalogue """
       self._playlists[playlist.playlist_id] = playlist
     
     def  record_session(self,session:ListeningSession) -> None:
+      """Record a listening session and link it to the user  """
       self._sessions.append(session)
       session.user.add_session(session)
       
     def get_track(self, track_id:str) -> Track | None:
+      """Return a track by ID or None if not found """
       return self._catalogue.get(track_id)
     
     def get_user(self,user_id:str) ->User | None:
+      """Return a user by ID or None if not found """
       return self._users.get(user_id)
     
     def get_artist(self,artist_id:str) -> Artist | None:
+      """Return an artist by ID or None if not found """
       return self._artists.get(artist_id)
     
     def get_album(self,album_id:str) -> Album | None:
+      """Return an album by ID or None if not found """
       return self._albums.get(album_id)
     
     def all_users(self) -> list[User]:
+      """Return a list of all users on the platform """
       return list(self._users.values())
     
     def all_tracks(self) -> list[Track]:
+      """Return a list of all tracks on the platform """
       return list(self._catalogue.values())
     
   
@@ -69,7 +90,7 @@ class StreamingPlatform:
       
       
     def total_listening_time_minutes(self,start: datetime, end: datetime) -> float:
-          
+          """Return total listening time in minutes within a time window """
           total_seconds = 0
           
           for session in self._sessions:
@@ -78,7 +99,11 @@ class StreamingPlatform:
           return total_seconds / 60
         
     def avg_unique_tracks_per_premium_user(self,days:int = 30) -> float:
-      
+      """Return average number of unique tracks listened to by PremiumUsers
+      in the last given number of days 
+    
+      Returns 0  if there are no premium users 
+    """
       now = datetime.now() - timedelta(days=days)
       
       
@@ -103,7 +128,7 @@ class StreamingPlatform:
       
       
     def track_with_most_distinct_listeners(self) -> Track | None:
-      
+      """Return the track listened to by the highest number of unique users """
       if not self._sessions:
         return None
       
@@ -130,7 +155,7 @@ class StreamingPlatform:
       return self.get_track(max_track_id)
     
     def  avg_session_duration_by_user_type(self) -> list[tuple[str,float]]:
-       
+      """Return average session duration per user type, sorted descending """
       stats = {}
       
       for session in self._sessions:
@@ -151,6 +176,7 @@ class StreamingPlatform:
       return result
     
     def total_listening_time_underage_sub_users_minutes(self,age_threshold: int = 18) -> float:
+      """Return total listening time in min  for family sub-users under given age """
       total_seconds = 0
       for user in self._users.values():
         if isinstance(user,FamilyAccountUser):
@@ -161,7 +187,7 @@ class StreamingPlatform:
       return total_seconds / 60 
 
     def top_artists_by_listening_time(self,n : int = 5) -> list[tuple[Artist,float]]:
-      
+      """Return top n artists ranked by listening time in min """
       top_artists = {}
       
       for session in self._sessions:
@@ -189,6 +215,8 @@ class StreamingPlatform:
      
 
     def user_top_genre(self,user_id:str) -> tuple[str,float] | None:
+      """Return user's most listened genre and its percentage of total listening time """
+      
       user = self.get_user(user_id)
       
       if not user:
@@ -213,6 +241,9 @@ class StreamingPlatform:
       return (top_genre,percentage)
     
     def collaborative_playlists_with_many_artists(self, threshold: int = 3) -> list[CollaborativePlaylist]:
+      
+      """Return collaborative playlists with more than threshold distinct artists """
+      
       result = []
       for playlist in self._playlists.values():
         if not isinstance(playlist,CollaborativePlaylist):
@@ -231,6 +262,8 @@ class StreamingPlatform:
        
     def avg_tracks_per_playlist_type(self) -> dict[str,float]:
       
+      """Return average number of tracks per playlist type """
+
       playlist_total  = 0 
       playlist_count = 0
       
@@ -261,6 +294,7 @@ class StreamingPlatform:
       
     def users_who_completed_albums(self) -> list[tuple[User,list[str]]]:
       
+      """Return users who listened to all tracks of at least one album """
       
       result = []
       
