@@ -65,7 +65,7 @@ class FreeUser(User):
     
 class PremiumUser(User):
   
-  """Represents a premium platform user.
+  """Represents a premium platform user
 
     Attributes:
         subscription_start (date): subscription start date

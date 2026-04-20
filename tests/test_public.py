@@ -138,7 +138,7 @@ class TestAvgUniqueTracksPremium:
 # ===========================================================================
 
 class TestTrackMostDistinctListeners:
-    """Test the track_with_most_distinct_listeners() method.
+    """ Test the track_with_most_distinct_listeners() method
     
     This method should:
     - Count the number of unique users who have listened to each track

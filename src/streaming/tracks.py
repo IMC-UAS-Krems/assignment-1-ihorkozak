@@ -35,19 +35,19 @@ class Track(ABC):
    
    
   
-  """Return track duration in minutes.""" 
+  """Return track duration in minutes""" 
   def duration_minutes(self):
     return self.duration_seconds / 60
   
   
-  """Compare tracks by their track_id."""
+  """Compare tracks by their track_id"""
   def __eq__(self, other):
     if not isinstance(other, Track):
       return False
     return self.track_id == other.track_id
 
 class Song(Track):
-  """Represents a musical track.
+  """Represents a musical track
 
     Attributes:
         artist: Artist 
@@ -62,7 +62,7 @@ class Song(Track):
     
 class SingleRelease(Song):
   
-  """Represents a standalone song released as a single.
+  """Represents a standalone song released as a single
 
     Attributes:
         release_date (date): release date of the song
@@ -76,7 +76,7 @@ class SingleRelease(Song):
   
 class AlbumTrack(Song):
   
-  """Represents a song that belongs to an album.
+  """Represents a song that belongs to an album
 
     Attributes:
         track_number (int): position of the track 
@@ -92,7 +92,7 @@ class AlbumTrack(Song):
   
 class Podcast(Track):
   
-  """Represents a podcast episode.
+  """Represents a podcast episode
 
     Attributes:
         host (str): podcast host
@@ -107,7 +107,7 @@ class Podcast(Track):
 
 class InterviewEpisode(Podcast):
   
-  """Podcast episode with a guest interview.
+  """Podcast episode with a guest interview
 
     Attributes:
         guest (str):  guest
@@ -120,7 +120,7 @@ class InterviewEpisode(Podcast):
   
 class NarrativeEpisode(Podcast):
   
-  """Podcast episode that is part of a series.
+  """Podcast episode that is part of a series
 
     Attributes:
         season (int): season number
@@ -142,7 +142,7 @@ class AudiobookTrack(Track):
     self.author = author
     self.narrator = narrator
 
-"""Represents an audiobook segment.
+"""Represents an audiobook segment
 
     Attributes:
         author (str): book author

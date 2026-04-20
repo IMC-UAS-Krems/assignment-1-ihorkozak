@@ -17,12 +17,12 @@ from streaming.sessions import ListeningSession
 
 class StreamingPlatform:
   
-    """Central class managing all entities in the streaming platform 
+    """ Central class managing all entities in the streaming platform 
 
     Responsible for:
-        - storing users, tracks, artists, albums, playlists
-        - recording listening sessions
-        - providing analytics queries (Q1 - Q10)
+         storing users, tracks, artists, albums, playlists
+         recording listening sessions
+          providing analytics queries 
     """
     
     def __init__(self,name:str):
